@@ -5,6 +5,7 @@
 - [2025-08-11](#2025-08-11)
 - [2025-08-12](#2025-08-12)
 - [2025-08-13](#2025-08-13)
+- [2025-08-14](#2025-08-14)
 
 <br><br><br>
 
@@ -191,4 +192,128 @@ $$
 📅[목차로 돌아가기](#-목차)
 
 ---
+
+## **2025-08-14**
+
+---
+
+### Transformers 한눈에 보기
+
+* **핵심 아이디어**: 순서를 따라가며 정보를 전달하던 RNN 대신, **Self-Attention**으로 입력 전체를 한 번에 바라보며 토큰 간 의존성을 학습. 병렬처리로 학습/추론이 빠르고, 장거리 의존성에 강함.
+* **대표 구조**: (1) **Encoder–Decoder**(번역 등, 예: T5), (2) **Encoder-only**(이해/분류, 예: BERT), (3) **Decoder-only**(생성, 예: GPT).
+
+---
+
+### 블록 구성 요소(한 층)
+
+1. **임베딩 + 위치정보**
+
+   * 토큰을 실수 벡터로 변환(**Token Embedding**) 후, 순서 정보를 주입(**Positional Encoding**: Sinusoidal/학습형/**RoPE**/ALiBi 등).
+
+2. **멀티헤드 Self-Attention (MHSA)**
+
+   * 각 토큰에서 **Query(Q)**, **Key(K)**, \*\*Value(V)\*\*를 만들고 유사도를 가중합:
+     
+   ![attention](https://latex.codecogs.com/svg.image?\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}+\text{mask}\right)V)
+
+   * 여러 **head**(보통 8, 12, 16…)로 서로 다른 서브공간의 패턴을 병렬 학습한 뒤 concat → 선형변환.
+
+3. **포지션별 피드포워드(FFN)**
+
+   * 각 토큰 벡터에 독립 적용되는 2층 MLP (차원 일반적으로 $4\times d_{model}$), 활성함수 **GELU** 등.
+
+4. **잔차 연결(Residual) + LayerNorm**
+
+   * 안정적 학습을 위해 `x + Sublayer(x)` 후 **LayerNorm**. (현대 모델은 **Pre-LN**가 일반적)
+
+---
+
+### 마스크(Mask)
+
+* **Padding Mask**: 패딩 토큰 점수 차단.
+* **Causal(look-ahead) Mask**: 디코더에서 미래 토큰을 보지 못하게 차단(생성 모델 필수).
+* **Cross-Attention**: 디코더가 인코더 출력을 참조할 때 사용(번역 등).
+
+---
+
+### 세 가지 아키텍처와 활용
+
+* **Encoder–Decoder**: 입력 인코딩 → 디코더가 **Cross-Attention**으로 참조하며 출력 생성(기계번역, 요약).
+* **Encoder-only (BERT류)**: **Masked Language Modeling**으로 문맥 이해에 특화(분류/추출/문서 이해).
+* **Decoder-only (GPT류)**: **Autoregressive** 예측으로 자연스러운 텍스트/코드/대화 생성.
+
+---
+
+### 학습 목표(Objectives)
+
+* **Autoregressive**: 다음 토큰 예측(언어 생성).
+* **Masked LM**: 일부 토큰 가리기 → 맞히기(언어 이해).
+* **Sequence-to-Sequence**: 입력 시퀀스 → 출력 시퀀스 매핑(번역/요약).
+
+---
+
+### 토크나이징
+
+* **BPE / WordPiece / SentencePiece**: 서브워드 단위로 분해(희귀어/신조어에 강함).
+* **스페셜 토큰**: BOS/EOS/PAD/CLS/SEP 등.
+
+---
+
+### 디코딩 전략(생성 시)
+
+* **Greedy**, **Beam Search**(정밀), **Top-k**, **Top-p(누클리어스)**, **Temperature**(창의성 제어).
+
+  * 일반적 조합: Top-p + Temperature, 또는 Beam(요약/번역).
+
+---
+
+### 계산 복잡도와 효율화
+
+* **표준 Self-Attention**: $O(n^2)$ 메모리/시간(문맥 길이 $n$).
+* 효율 기법: **FlashAttention**(메모리 효율), **Sparse/Sliding-window**(Longformer), **Linear Attention**(Performer/Kernel), **압축/리샘플링**, **KV 캐시**(디코딩 가속).
+
+---
+
+### 위치 인코딩/바이어스
+
+* **Sinusoidal**(고정), **Learned**(학습형), **RoPE**(회전형, 롱컨텍스트/상대 위치에 유리), **ALiBi**(길이 일반화).
+* 긴 문맥 모델은 RoPE 스케일링/ALiBi/윈도우화로 안정성 확보.
+
+---
+
+### 최적화 & 학습 팁
+
+* **AdamW**(가중치 감쇠), **Warmup + Cosine/Linear decay** 스케줄.
+* **Mixed Precision(FP16/BF16)**, **Gradient Accumulation/Checkpointing**.
+* **정규화/안정화**: Dropout, Weight Tying, Norm 튜닝.
+* **파인튜닝**: 전체 미세조정, **LoRA/Adapter**(경량), Prompt/Prefix Tuning(매개변수 적음).
+* **정렬(Alignment)**: RLHF/DPO 등(대화 품질/안전성 향상, 필요 시).
+
+---
+
+### 비전/오디오/멀티모달
+
+* **ViT**: 이미지를 패치로 쪼개 토큰처럼 처리(CLS 토큰을 통해 분류).
+* **멀티모달**: 텍스트+이미지/음성 등을 하나의 토큰 시퀀스로 결합하여 학습.
+
+---
+
+### 한계와 주의점
+
+* **메모리/시간 비용**: $O(n^2)$로 길이가 길어질수록 급증.
+* **환각(Hallucination)**, **길이 편향**, **노이즈 민감성**.
+* 데이터 누수/편향 관리, 평가셋 엄격 분리 필수.
+
+---
+
+### 핵심 하이퍼파라미터 빠르게 정리
+
+* $d_{model}$ (임베딩 차원), **heads**(멀티헤드 수), **layers**(층 수), **FFN 차원**($\approx 4\times d_{model}$), **context length**, **dropout**, **lr/warmup**.
+
+---
+
+📅[목차로 돌아가기](#-목차)
+
+---
+
 
