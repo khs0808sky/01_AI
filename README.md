@@ -6,6 +6,7 @@
 - [2025-08-12](#2025-08-12)
 - [2025-08-13](#2025-08-13)
 - [2025-08-14](#2025-08-14)
+- [2025-08-18](#2025-08-18)
 
 <br><br><br>
 
@@ -316,4 +317,101 @@ $$
 
 ---
 
+---
+
+## **2025-08-18**
+
+---
+
+### 1) 검증셋(Validation Set)
+
+* **목적**: 모델이 학습 데이터에만 과적합(overfitting)되지 않았는지 확인하고, **하이퍼파라미터**(학습률, 레이어 수, 드롭아웃 비율 등)를 조정하는 데 사용.
+* **구성**:
+
+  * 데이터셋 → **Train / Validation / Test**로 분리.
+  * Train: 가중치 학습.
+  * Validation: 중간 점검(성능 측정, Early Stopping).
+  * Test: 최종 성능 평가(실전 배치 전).
+* **사용 예시**:
+
+  * **Early Stopping**: Validation loss가 일정 횟수 이상 개선되지 않으면 학습 종료.
+  * 모델 선택(Model Selection): Validation 성능이 가장 좋은 checkpoint를 선택.
+
+---
+
+### 2) Word Embedding
+
+* **정의**: 단어를 고차원 희소 벡터(One-hot)가 아닌, **의미적 관계를 반영하는 저차원 연속 벡터 공간**에 매핑하는 방법.
+* **대표 방법**:
+
+  1. **Word2Vec (CBOW / Skip-gram)**
+
+     * CBOW: 주변 단어 → 중앙 단어 예측.
+     * Skip-gram: 중앙 단어 → 주변 단어 예측.
+     * 단어 간 **코사인 유사도**로 의미 관계 포착.
+  2. **GloVe**: 말뭉치 전체의 **공동 등장 확률 통계**를 활용해 학습.
+  3. **FastText**: 단어 내부 **n-gram** 단위까지 고려 → 신조어, 희귀어 대응 가능.
+  4. **Contextual Embedding (ELMo, BERT, GPT 등)**
+
+     * 동일한 단어라도 문맥에 따라 다른 벡터 제공.
+     * 현대 NLP에서는 주로 이 방식 사용.
+* **특징**:
+
+  * 유사 단어는 벡터 공간에서 가깝게 위치.
+  * “king – man + woman ≈ queen” 같은 벡터 연산 가능.
+
+---
+
+### 3) Attention Value
+
+* **Self-Attention 메커니즘**에서 Q, K, V 벡터를 통해 계산.
+
+  * $Q = XW^Q,\ K = XW^K,\ V = XW^V$
+  * 유사도: $\text{score}(Q,K) = \frac{QK^\top}{\sqrt{d_k}}$
+  * 가중치: $\alpha = \text{softmax}(\text{score})$
+  * 출력: $\text{Attention}(Q,K,V) = \alpha V$
+* **Value(V)의 역할**:
+
+  * K와 Q로 "어디를 집중할지" 결정한 후,
+  * V는 그 위치의 \*\*실제 정보(콘텐츠)\*\*를 담고 있음.
+* **직관적 비유**:
+
+  * Q = 내가 지금 궁금한 질문
+  * K = 모든 정보들의 “색인/주소”
+  * V = 색인이 가리키는 “실제 내용”
+    → 결국 Attention Value는 최종적으로 모델이 가져오는 **콘텐츠 정보**.
+
+---
+
+### 4) 파인튜닝(Fine-Tuning)
+
+* **정의**: 사전 학습(Pre-training)된 모델을 특정 태스크에 맞게 추가 학습하는 과정.
+* **종류**:
+
+  1. **Full Fine-Tuning**
+
+     * 모델 전체 파라미터를 학습 데이터에 맞게 다시 학습.
+     * 성능 좋지만 비용 크고, Catastrophic Forgetting 위험.
+  2. **Feature Extraction**
+
+     * 사전학습 모델은 고정, 상단에 작은 분류기(MLP, Linear)만 학습.
+  3. **Parameter-Efficient Fine-Tuning (PEFT)**
+
+     * 일부 파라미터만 조정 → 효율성↑
+     * 예: **LoRA**, **Adapter**, **Prefix Tuning**.
+* **활용 예시**:
+
+  * BERT → 감정 분류, 문장 유사도, NER 등.
+  * GPT → 대화, 코드 생성, 특정 도메인 언어.
+* **실무 팁**:
+
+  * 데이터 적을 땐 PEFT 기법 활용 추천.
+  * 과적합 방지를 위해 Early Stopping/Dropout 필요.
+  * 학습률은 보통 Pre-training보다 훨씬 작게 설정(예: 1e-5\~5e-5).
+
+---
+
+📅[목차로 돌아가기](#-목차)
+
+---
 
